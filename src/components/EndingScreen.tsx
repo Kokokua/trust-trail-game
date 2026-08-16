@@ -28,6 +28,19 @@ export function EndingScreen({ ending, onContinue }: { ending: Ending; onContinu
         >
           See how you got here
         </button>
+        {ending.citation && (
+          <p className="mt-6 border-t border-border/60 pt-4 text-xs leading-relaxed text-muted-foreground">
+            {ending.citation.text}{" "}
+            <a
+              href={ending.citation.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2"
+            >
+              Read more
+            </a>
+          </p>
+        )}
       </div>
     </main>
   );

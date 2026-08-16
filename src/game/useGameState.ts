@@ -1,16 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Pick } from "./content";
 
+export interface MisplacementNote {
+  deviceId: string;
+  attemptedRoomId: string;
+  note: string;
+  timestamp: number;
+}
+
 export interface GameState {
   choices: Record<string, Pick>;
   users: number;
   trust: number; // -5..5
   risk: number; // 0..5
   reflection: string;
+  /** device ids that already triggered the curious wrong-room prompt */
+  askedDevices: string[];
+  misplacements: MisplacementNote[];
   phase: "play" | "zoom" | "ending" | "debrief";
 }
 
-const KEY = "trusttrail.v1";
+const KEY = "trusttrail.v2";
 
 const initial: GameState = {
   choices: {},
@@ -18,6 +28,8 @@ const initial: GameState = {
   trust: 0,
   risk: 0,
   reflection: "",
+  askedDevices: [],
+  misplacements: [],
   phase: "play",
 };
 
@@ -60,6 +72,22 @@ export function useGameState() {
     });
   }, []);
 
+  const recordMisplacement = useCallback(
+    (deviceId: string, attemptedRoomId: string, note: string) => {
+      setState((s) => ({
+        ...s,
+        askedDevices: s.askedDevices.includes(deviceId)
+          ? s.askedDevices
+          : [...s.askedDevices, deviceId],
+        misplacements: [
+          ...s.misplacements,
+          { deviceId, attemptedRoomId, note, timestamp: Date.now() },
+        ],
+      }));
+    },
+    [],
+  );
+
   const setPhase = useCallback(
     (phase: GameState["phase"]) => setState((s) => ({ ...s, phase })),
     [],
@@ -68,7 +96,14 @@ export function useGameState() {
     (reflection: string) => setState((s) => ({ ...s, reflection })),
     [],
   );
-  const reset = useCallback(() => setState(initial), []);
+  const reset = useCallback(() => {
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      /* ignore */
+    }
+    setState(initial);
+  }, []);
 
-  return { state, hydrated, choose, setPhase, setReflection, reset };
+  return { state, hydrated, choose, recordMisplacement, setPhase, setReflection, reset };
 }
