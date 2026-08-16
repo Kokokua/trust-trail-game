@@ -200,11 +200,11 @@ export function resolveEnding(choices: Record<string, Pick>): {
   ending: Ending;
   decidingRoom: string | null;
 } {
-  if (choices.bedroom === "max") return { ending: ENDINGS.meta, decidingRoom: "bedroom" };
-  if (choices.entry === "max") return { ending: ENDINGS.ring, decidingRoom: "entry" };
-  if (choices.office === "max") return { ending: ENDINGS.ring, decidingRoom: "office" };
-  if (choices.storage === "max") return { ending: ENDINGS.gm, decidingRoom: "storage" };
-  if (choices.living === "max") return { ending: ENDINGS.gm, decidingRoom: "living" };
+  if (choices['bedroom'] === "max") return { ending: ENDINGS.meta, decidingRoom: "bedroom" };
+  if (choices['entry'] === "max") return { ending: ENDINGS.ring, decidingRoom: "entry" };
+  if (choices['office'] === "max") return { ending: ENDINGS.ring, decidingRoom: "office" };
+  if (choices['storage'] === "max") return { ending: ENDINGS.gm, decidingRoom: "storage" };
+  if (choices['living'] === "max") return { ending: ENDINGS.gm, decidingRoom: "living" };
   return { ending: ENDINGS.trusted, decidingRoom: null };
 }
 
