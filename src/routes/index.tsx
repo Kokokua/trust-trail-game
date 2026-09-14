@@ -7,7 +7,10 @@ import { HouseMap, roomFill } from "@/components/HouseMap";
 import { DecisionCard } from "@/components/DecisionCard";
 import { EndingScreen } from "@/components/EndingScreen";
 import { DebriefScreen } from "@/components/DebriefScreen";
+import { ChoiceFeedback } from "@/components/ChoiceFeedback";
+import { UnderstandingCheck } from "@/components/UnderstandingCheck";
 import { ROOMS, resolveEnding, type Pick } from "@/game/content";
+import { feedbackFor } from "@/game/learning";
 import { useGameState } from "@/game/useGameState";
 
 export const Route = createFileRoute("/")({
