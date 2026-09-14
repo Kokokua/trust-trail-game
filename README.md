@@ -1,56 +1,41 @@
 # TrustTrail: Build Your Smart Home Startup
 
-Decision simulator สอนเรื่อง Informed Consent และ Privacy ในอุปกรณ์ IoT ผ่านการจำลองเป็นผู้บริหาร Startup Smart Home  
-โปรเจกต์สำหรับกระบวนวิชา **953420 Ethics and Professionalism for Software Engineers**  
-วิทยาลัยศิลปะ สื่อ และเทคโนโลยี (CAMT) มหาวิทยาลัยเชียงใหม่
+A decision simulator teaching Informed Consent and Privacy in IoT devices through simulating the experience of managing a smart home startup.
+Project for the course **953420 Ethics and Professionalism for Software Engineers**
 
 ---
 
-## 🔗 ลิงก์เข้าใช้งาน (Platform Links)
+## 🔗 Access Links (Platform Links)
 
-- **เข้าเล่นเกม (Simulator):** [https://trust-trail-game.vercel.app/](https://trust-trail-game.vercel.app/)
-- **หน้าดูผลการประเมิน (Results Dashboard):** [https://trust-trail-game.vercel.app/results](https://trust-trail-game.vercel.app/results)
-
----
-
-## 🎮 เกี่ยวกับเกมและระบบการเล่น
-
-TrustTrail เป็นเกมจำลองสถานการณ์ที่ให้ผู้เล่นสวมบทบาทเป็นผู้ก่อตั้ง Startup ด้าน Smart Home เพื่อให้เห็นผลกระทบของการตัดสินใจด้าน Privacy และผลประโยชน์ทางธุรกิจจริง
-
-1. **Story Prologue:** ฟังบรีฟจาก Sarah (Product Lead) เกี่ยวกับสถานการณ์และเป้าหมายของ Startup
-2. **Pre-test:** ทำแบบทดสอบวัดความรู้ก่อนเริ่มเล่น (5 ข้อ) และประเมินทัศนคติ
-3. **Smart Home Simulation:** 
-   - ลากอุปกรณ์ IoT 5 ชิ้นลงในห้องที่ถูกต้อง (Smart Speaker, Security Camera, Fitness Wearable, Video Doorbell, Smart TV)
-   - หากลากผิดห้องจะมีหน้าต่างถามเหตุผลเพื่อเก็บข้อมูลความเข้าใจ (Mental Model)
-   - แต่ละอุปกรณ์จะต้องตัดสินใจเลือก 1 ใน 2 ทางเลือกระหว่าง Privacy หรือ Business
-   - มีปุ่มเปิด **Live Data Trail** เพื่อดูการส่งข้อมูลของแต่ละอุปกรณ์แบบ Real-time
-4. **Game Endings:** เมื่อวางครบ 5 ชิ้น จะสรุปฉากจบตามการตัดสินใจ (มี 4 แบบตามเคสจริง: GM, Ring, Meta, และ Trusted Product)
-5. **Post-test:** ทำแบบทดสอบหลังเล่นและตอบแบบประเมินความพึงพอใจ
+- **Play Game** (Simulator): [https://trust-trail-game.vercel.app/](https://trust-trail-game.vercel.app/)
+- **Results Dashboard:** [https://trust-trail-game.vercel.app/results](https://trust-trail-game.vercel.app/results)
 
 ---
 
-## 💻 วิธีการรันบนเครื่อง (Local Development)
+## 🎮 About the Game and Gameplay
 
-`ash
-# ติดตั้ง dependencies
+TrustTrail is a simulation game that puts players in the role of a Smart Home startup founder to see the impact of privacy decisions and real-world business benefits.
+
+1. **Story Prologue:** Listen to a briefing from Sarah (Product Lead) about the startup's situation and goals.
+2. **Pre-test:** Take a pre-game knowledge test (5 questions) and assess your attitude.
+3. **Smart Home Simulation:**
+- Drag 5 IoT devices into the correct rooms (Smart Speaker, Security Camera, Fitness Wearable, Video Doorbell, Smart TV)
+- - If you drag the wrong piece into the wrong room, a window will appear asking for the reason to gather understanding data (Mental Model).
+- Each device must decide on one of two options: Privacy or Business.
+- There is a button to enable **Live Data Trail** to view data transmission from each device in real-time.
+4. **Game Endings:** Once all 5 pieces are placed, a summary of the ending will be displayed based on the decision (there are 4 endings based on real-world cases: GM, Ring, Meta, and Trusted Product).
+5. **Post-test:** Take a post-game test and answer a satisfaction survey.
+
+---
+
+## 💻 How to run on a machine (Local Development)
+
+# Install dependencies
 npm install
 
-# รัน dev server
+# Run dev server
 npm run dev
 
-# คำสั่ง Build
+# Build command
 npm run build
 `
-
----
-
-## 👥 สมาชิกกลุ่ม 16
-
-- 662115015 Natthaphong Kangkantam (ณัฐพงศ์ กังคันถัมภ์)
-- 662115026 Nawapon Sriboonreang (นวพล ศรีบุญเรือง)
-- 662115035 Phutthichai Hankamjohn (พุทธิชัย หารคำจร)
-- 662115039 Manapat Kaewlai (มานะพัฒน์ แก้วลาย)
-
-**อาจารย์ประจำกระบวนวิชา:**
-- ผศ.ดร. ภราดร สุรีย์พงษ์ (Asst. Prof. Dr. Pradorn Sureephong)
-- ผศ.ดร. สืบพงษ์ เชิญบำรุง (Asst. Prof. Dr. Suepphong Chernbumroong)
