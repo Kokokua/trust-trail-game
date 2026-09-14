@@ -20,10 +20,19 @@ export interface GameState {
   /** understanding check answers, before and after playing */
   preAnswers: Record<string, string>;
   postAnswers: Record<string, string>;
-  phase: "pre" | "play" | "zoom" | "ending" | "debrief" | "post";
+  /** 1-5 Likert scale responses based on Proposal page 8 */
+  preLikert: Record<string, number>;
+  postLikert: Record<string, number>;
+  priorExp: "Yes" | "No" | "";
+  selectedConcepts: string[];
+  whyUnfair: string;
+  satisfaction: number;
+  improvement: string;
+  submittedRecordId?: string | undefined;
+  phase: "title" | "story" | "pre" | "play" | "zoom" | "ending" | "debrief" | "post";
 }
 
-const KEY = "trusttrail.v3";
+const KEY = "trusttrail.v5";
 
 const initial: GameState = {
   choices: {},
@@ -35,7 +44,14 @@ const initial: GameState = {
   misplacements: [],
   preAnswers: {},
   postAnswers: {},
-  phase: "pre",
+  preLikert: {},
+  postLikert: {},
+  priorExp: "",
+  selectedConcepts: [],
+  whyUnfair: "",
+  satisfaction: 9,
+  improvement: "",
+  phase: "title",
 };
 
 export function useGameState() {
@@ -63,16 +79,48 @@ export function useGameState() {
 
   const choose = useCallback((roomId: string, pick: Pick) => {
     setState((s) => {
-      if (s.choices[roomId]) return s;
+      const prevPick = s.choices[roomId];
+      if (prevPick === pick) return s;
+
+      let newTrust = s.trust;
+      let newRisk = s.risk;
+      let newUsers = s.users;
+
+      if (prevPick) {
+        newTrust -= prevPick === "care" ? 1 : -1;
+        newRisk = Math.max(0, newRisk - (prevPick === "max" ? 1 : 0));
+        newUsers = Math.max(1200, newUsers - (prevPick === "max" ? 640 : 210));
+      }
+
+      newTrust += pick === "care" ? 1 : -1;
+      newRisk += pick === "max" ? 1 : 0;
+      newUsers += (pick === "max" ? 640 : 210) + (prevPick ? 0 : Math.floor(Math.random() * 90));
+
       const choices = { ...s.choices, [roomId]: pick };
       const done = Object.keys(choices).length === 5;
       return {
         ...s,
         choices,
-        trust: s.trust + (pick === "care" ? 1 : -1),
-        risk: s.risk + (pick === "max" ? 1 : 0),
-        users: s.users + (pick === "max" ? 640 : 210) + Math.floor(Math.random() * 90),
+        trust: newTrust,
+        risk: newRisk,
+        users: newUsers,
         phase: done ? "zoom" : "play",
+      };
+    });
+  }, []);
+
+  const unchoose = useCallback((roomId: string) => {
+    setState((s) => {
+      const prevPick = s.choices[roomId];
+      if (!prevPick) return s;
+      const { [roomId]: _, ...restChoices } = s.choices;
+      return {
+        ...s,
+        choices: restChoices,
+        trust: s.trust - (prevPick === "care" ? 1 : -1),
+        risk: Math.max(0, s.risk - (prevPick === "max" ? 1 : 0)),
+        users: Math.max(1200, s.users - (prevPick === "max" ? 640 : 210)),
+        phase: "play",
       };
     });
   }, []);
@@ -102,23 +150,59 @@ export function useGameState() {
       setState((s) => ({ ...s, [which]: { ...s[which], [itemId]: optionId } })),
     [],
   );
+  const setLikert = useCallback(
+    (which: "preLikert" | "postLikert", qId: string, val: number) =>
+      setState((s) => ({ ...s, [which]: { ...s[which], [qId]: val } })),
+    [],
+  );
+  const setSurveyField = useCallback(
+    <K extends keyof GameState>(field: K, val: GameState[K]) =>
+      setState((s) => ({ ...s, [field]: val })),
+    [],
+  );
   const setReflection = useCallback(
     (reflection: string) => setState((s) => ({ ...s, reflection })),
     [],
   );
   /** replay the house; the before-play baseline is kept so the comparison stays meaningful */
   const reset = useCallback(() => {
-    setState((s) => ({ ...initial, preAnswers: s.preAnswers, phase: "play" }));
+    setState((s) => ({
+      ...initial,
+      preAnswers: s.preAnswers,
+      preLikert: s.preLikert,
+      phase: "play",
+    }));
+  }, []);
+
+  /** start a completely fresh session for a new participant (P-01, P-02, etc.) */
+  const startNewParticipant = useCallback(() => {
+    setState({
+      ...initial,
+      phase: "story",
+    });
+  }, []);
+
+  /** return to title screen */
+  const goToTitle = useCallback(() => {
+    setState({
+      ...initial,
+      phase: "title",
+    });
   }, []);
 
   return {
     state,
     hydrated,
     choose,
+    unchoose,
     recordMisplacement,
     setPhase,
     answerCheck,
+    setLikert,
+    setSurveyField,
     setReflection,
     reset,
+    startNewParticipant,
+    goToTitle,
   };
 }

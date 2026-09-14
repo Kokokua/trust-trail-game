@@ -1,16 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Shield, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Shield, Eye, ChevronLeft, ChevronRight, Radio } from "lucide-react";
 import { Dashboard } from "@/components/Dashboard";
-import { HouseMap, roomFill } from "@/components/HouseMap";
+import { HouseMap, roomFill, DATA_TRAIL_DESTINATIONS } from "@/components/HouseMap";
 import { DecisionCard } from "@/components/DecisionCard";
 import { EndingScreen } from "@/components/EndingScreen";
 import { DebriefScreen } from "@/components/DebriefScreen";
 import { ChoiceFeedback } from "@/components/ChoiceFeedback";
 import { UnderstandingCheck } from "@/components/UnderstandingCheck";
+import { StoryPrologue } from "@/components/StoryPrologue";
+import { TitleScreen } from "@/components/TitleScreen";
 import { ROOMS, resolveEnding, type Pick } from "@/game/content";
-import { feedbackFor } from "@/game/learning";
+import { feedbackFor, scoreCheck } from "@/game/learning";
+import { saveParticipantRecord } from "@/game/participantStorage";
 import { useGameState } from "@/game/useGameState";
 
 export const Route = createFileRoute("/")({
@@ -46,13 +49,28 @@ function useNarrow() {
 }
 
 function Index() {
-  const { state, hydrated, choose, setPhase, answerCheck, setReflection, reset } = useGameState();
+  const {
+    state,
+    hydrated,
+    choose,
+    unchoose,
+    recordMisplacement,
+    setPhase,
+    answerCheck,
+    setLikert,
+    setSurveyField,
+    setReflection,
+    reset,
+    startNewParticipant,
+    goToTitle,
+  } = useGameState();
   const narrow = useNarrow();
   const [dragging, setDragging] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [openRoom, setOpenRoom] = useState<string | null>(null);
   const [slide, setSlide] = useState(0);
   const [feedback, setFeedback] = useState<{ roomId: string; pick: Pick } | null>(null);
+  const [showDataTrail, setShowDataTrail] = useState(false);
   const zoomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -63,22 +81,45 @@ function Index() {
     };
   }, [state.phase, feedback, setPhase]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.search.includes("new=true")) {
+      startNewParticipant();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [startNewParticipant]);
+
   if (!hydrated) return <div className="min-h-screen bg-background" />;
 
   const { ending, decidingRoom } = resolveEnding(state.choices);
 
+  if (state.phase === "title") {
+    return <TitleScreen onStart={startNewParticipant} />;
+  }
+  if (state.phase === "story") {
+    return <StoryPrologue onComplete={() => setPhase("pre")} onGoToTitle={goToTitle} />;
+  }
   if (state.phase === "pre") {
     return (
       <UnderstandingCheck
         mode="before"
         answers={state.preAnswers}
         onAnswer={(item, opt) => answerCheck("preAnswers", item, opt)}
+        likertAnswers={state.preLikert}
+        onLikertAnswer={(qId, val) => setLikert("preLikert", qId, val)}
         onDone={() => setPhase("play")}
+        onGoToTitle={goToTitle}
       />
     );
   }
   if (state.phase === "ending") {
-    return <EndingScreen ending={ending} onContinue={() => setPhase("debrief")} />;
+    return (
+      <EndingScreen
+        ending={ending}
+        choices={state.choices}
+        onContinue={() => setPhase("debrief")}
+        onGoToTitle={goToTitle}
+      />
+    );
   }
   if (state.phase === "debrief") {
     return (
@@ -89,18 +130,73 @@ function Index() {
         reflection={state.reflection}
         onReflection={setReflection}
         onRestart={() => setPhase("post")}
+        onGoToTitle={goToTitle}
       />
     );
   }
   if (state.phase === "post") {
+    const handleSaveRecord = () => {
+      const mappedMisplacements = state.misplacements.map((m) => {
+        const d = ROOMS.find((r) => r.id === m.deviceId);
+        const rm = ROOMS.find((r) => r.id === m.attemptedRoomId);
+        return {
+          deviceName: d ? d.deviceName : m.deviceId,
+          roomName: rm ? rm.roomName : m.attemptedRoomId,
+          note: m.note,
+        };
+      });
+
+      const rec = saveParticipantRecord({
+        priorExp: state.priorExp === "No" ? "No" : "Yes",
+        preKnowledgeScore: scoreCheck(state.preAnswers),
+        postKnowledgeScore: scoreCheck(state.postAnswers),
+        endingReached: ending.title,
+        preLikert: state.preLikert,
+        postLikert: state.postLikert,
+        concepts: state.selectedConcepts,
+        whyUnfair: state.whyUnfair,
+        satisfaction: state.satisfaction,
+        improvement: state.improvement,
+        misplacements: mappedMisplacements,
+      });
+      setSurveyField("submittedRecordId", rec.id);
+      toast.success(`Participant ${rec.id} recorded successfully!`);
+    };
+
     return (
       <UnderstandingCheck
         mode="after"
         answers={state.postAnswers}
         baseline={state.preAnswers}
         onAnswer={(item, opt) => answerCheck("postAnswers", item, opt)}
+        likertAnswers={state.postLikert}
+        onLikertAnswer={(qId, val) => setLikert("postLikert", qId, val)}
+        baselineLikert={state.preLikert}
+        endingTitle={ending.title}
+        priorExp={state.priorExp}
+        onPriorExp={(v) => setSurveyField("priorExp", v)}
+        selectedConcepts={state.selectedConcepts}
+        onToggleConcept={(c) => {
+          const exists = state.selectedConcepts.includes(c);
+          setSurveyField(
+            "selectedConcepts",
+            exists
+              ? state.selectedConcepts.filter((x) => x !== c)
+              : [...state.selectedConcepts, c],
+          );
+        }}
+        whyUnfair={state.whyUnfair}
+        onWhyUnfair={(v) => setSurveyField("whyUnfair", v)}
+        satisfaction={state.satisfaction}
+        onSatisfaction={(v) => setSurveyField("satisfaction", v)}
+        improvement={state.improvement}
+        onImprovement={(v) => setSurveyField("improvement", v)}
         onDone={() => setPhase("play")}
         onRestart={reset}
+        onStartNewParticipant={startNewParticipant}
+        onGoToTitle={goToTitle}
+        onSubmitRecord={handleSaveRecord}
+        submittedRecordId={state.submittedRecordId}
       />
     );
   }
@@ -108,14 +204,30 @@ function Index() {
   const remaining = ROOMS.filter((r) => !state.choices[r.id]);
 
   const place = (roomId: string, fromDevice?: string) => {
-    if (state.choices[roomId]) return;
+    if (state.choices[roomId]) {
+      setOpenRoom(roomId);
+      return;
+    }
     const device = fromDevice ?? dragging;
     if (!device) {
       toast("Pick up a device from the shelf first.");
       return;
     }
     if (device !== roomId) {
-      toast("That device belongs in another room.");
+      const dev = ROOMS.find((r) => r.id === device);
+      const target = ROOMS.find((r) => r.id === roomId);
+      const correct = ROOMS.find((r) => r.id === device);
+      recordMisplacement(
+        device,
+        roomId,
+        `Attempted placing ${dev?.deviceName || device} into ${target?.roomName || roomId}`
+      );
+      toast.warning(
+        `${dev?.deviceName || "Device"} belongs in ${correct?.roomName || "another room"}`,
+        {
+          description: "Test bay mismatch logged for user testing metrics.",
+        }
+      );
       return;
     }
     setDragging(null);
@@ -126,37 +238,65 @@ function Index() {
     const room = ROOMS.find((r) => r.id === roomId)!;
     choose(roomId, pick);
     setOpenRoom(null);
-    toast.success(`${room.roomName} setup saved`, { description: room[pick].title });
     setFeedback({ roomId, pick });
   };
 
-  const openRoomDef = openRoom ? ROOMS.find((r) => r.id === openRoom)! : null;
-  const fbRoom = feedback ? ROOMS.find((r) => r.id === feedback.roomId)! : null;
-  const fb = feedback ? feedbackFor(feedback.roomId, feedback.pick) : null;
+  const fbRoom = feedback ? ROOMS.find((r) => r.id === feedback.roomId) : null;
+  const fb = fbRoom && feedback ? feedbackFor(fbRoom.id, feedback.pick) : null;
+  const openRoomDef = openRoom ? ROOMS.find((r) => r.id === openRoom) : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       {fbRoom && fb && feedback && (
         <ChoiceFeedback
           roomName={fbRoom.roomName}
           choiceTitle={fbRoom[feedback.pick].title}
+          pick={feedback.pick}
           principle={fb.principle}
           body={fb.body}
           realWorld={fb.realWorld}
           remaining={ROOMS.filter((r) => !state.choices[r.id]).length}
           onClose={() => setFeedback(null)}
+          onReconsider={() => {
+            unchoose(feedback.roomId);
+            setOpenRoom(feedback.roomId);
+            setFeedback(null);
+          }}
         />
       )}
-      <Dashboard trust={state.trust} risk={state.risk} users={state.users} />
+      <Dashboard
+        trust={state.trust}
+        risk={state.risk}
+        users={state.users}
+        configuredCount={Object.keys(state.choices).length}
+        hasActiveSession={Object.keys(state.choices).length > 0}
+        onGoToTitle={goToTitle}
+      />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
-          Your first home is ready for hardware
-        </h1>
-        <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-          Move each device into the room it belongs in. Five calls to make, in whatever order you
-          like.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              Your first home is ready for hardware
+            </h1>
+            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              Move each device into the room it belongs in. Five calls to make, in whatever order you
+              like.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowDataTrail(!showDataTrail)}
+            className={`inline-flex items-center gap-2 self-start sm:self-auto rounded-full px-4 py-2 text-xs font-semibold backdrop-blur-md transition-all shadow-sm ${
+              showDataTrail
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/30 ring-2 ring-primary"
+                : "border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/50"
+            }`}
+            title="Toggle real-time data flow and privacy architecture overlay"
+          >
+            <Radio className={`h-3.5 w-3.5 ${showDataTrail ? "animate-pulse text-red-300" : ""}`} />
+            <span>Live Data Trail: {showDataTrail ? "ACTIVE" : "OFF"}</span>
+          </button>
+        </div>
 
         {state.phase === "zoom" && (
           <p className="animate-fade mt-4 text-sm font-medium">
@@ -170,6 +310,7 @@ function Index() {
             setSlide={setSlide}
             choices={state.choices}
             openRoom={openRoom}
+            showDataTrail={showDataTrail}
             onPlace={(id) => place(id, id)}
             onDecide={decide}
             onDismiss={() => setOpenRoom(null)}
@@ -193,11 +334,17 @@ function Index() {
                         setDragging(null);
                         setHovered(null);
                       }}
-                      onClick={() => !done && setDragging(room.id)}
-                      disabled={done}
+                      onClick={() => {
+                        if (done) {
+                          setOpenRoom(room.id);
+                        } else {
+                          setDragging(room.id);
+                        }
+                      }}
+                      title={done ? "Configured · Click to review or change settings" : undefined}
                       className={`flex w-full items-center gap-2 rounded-2xl border p-2.5 text-left text-xs font-medium transition-all ${
                         done
-                          ? "cursor-default border-transparent bg-secondary/60 opacity-50"
+                          ? "border-border/60 bg-secondary/70 hover:border-primary/50 hover:bg-secondary cursor-pointer"
                           : dragging === room.id
                             ? "border-primary bg-primary/10 shadow-[var(--shadow-soft)]"
                             : "cursor-grab border-border bg-card hover:-translate-y-0.5 hover:border-primary/60"
@@ -207,9 +354,9 @@ function Index() {
                       <span className="truncate">{room.deviceName}</span>
                       {done &&
                         (state.choices[room.id] === "care" ? (
-                          <Shield className="ml-auto h-3.5 w-3.5" />
+                          <Shield className="ml-auto h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                         ) : (
-                          <Eye className="ml-auto h-3.5 w-3.5" />
+                          <Eye className="ml-auto h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                         ))}
                     </button>
                   );
@@ -218,7 +365,7 @@ function Index() {
               <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
                 {remaining.length > 0
                   ? `${remaining.length} left to set up. Drag, or tap a device then tap its room.`
-                  : "Everything is placed."}
+                  : "Everything is placed · Tap any room to review settings."}
               </p>
             </aside>
 
@@ -228,19 +375,22 @@ function Index() {
               hovered={hovered}
               selected={openRoom}
               zoomOut={state.phase === "zoom"}
+              showDataTrail={showDataTrail}
               onRoomEnter={setHovered}
               onRoomDrop={(id) => place(id)}
               onRoomClick={(id) => place(id)}
             >
               {openRoomDef && (
                 <DecisionCard
+                  key={openRoomDef.id}
                   room={openRoomDef}
+                  currentPick={state.choices[openRoomDef.id]}
                   onChoose={(p) => decide(openRoomDef.id, p)}
                   onDismiss={() => setOpenRoom(null)}
                   className="absolute z-20"
                   style={{
                     left: `${Math.min(openRoomDef.rect.x + 4, 46)}%`,
-                    top: `${Math.min(openRoomDef.rect.y + 6, 30)}%`,
+                    top: `${openRoomDef.rect.y > 20 ? 4 : Math.min(openRoomDef.rect.y + 6, 12)}%`,
                   }}
                 />
               )}
@@ -257,6 +407,7 @@ function MobileRooms({
   setSlide,
   choices,
   openRoom,
+  showDataTrail = false,
   onPlace,
   onDecide,
   onDismiss,
@@ -265,6 +416,7 @@ function MobileRooms({
   setSlide: (n: number) => void;
   choices: Record<string, Pick>;
   openRoom: string | null;
+  showDataTrail?: boolean;
   onPlace: (id: string) => void;
   onDecide: (id: string, p: Pick) => void;
   onDismiss: () => void;
@@ -286,17 +438,54 @@ function MobileRooms({
           touch.current = null;
         }}
         className="rounded-[2rem] border-4 border-wall p-3 shadow-[var(--shadow-card)] transition-colors duration-500"
-        style={{ backgroundColor: roomFill(room, choices, !!openRoom) }}
+        style={{ backgroundColor: roomFill(room, choices, openRoom === room.id) }}
       >
         <div className="flex aspect-[4/3] flex-col justify-between rounded-2xl border-2 border-wall/60 p-4">
           <p className="text-xs font-semibold opacity-70">{room.roomName}</p>
           <div className="flex items-center gap-2 self-start rounded-full bg-card/80 px-3 py-2">
             <Icon className="h-5 w-5" />
             <span className="text-xs font-medium">{room.deviceName}</span>
-            {pick === "care" && <Shield className="h-4 w-4" />}
-            {pick === "max" && <Eye className="h-4 w-4" />}
+            {pick === "care" && <Shield className="h-4 w-4 text-emerald-500" />}
+            {pick === "max" && <Eye className="h-4 w-4 text-amber-500" />}
           </div>
-          {!pick && (
+
+          {showDataTrail && pick && (
+            <div
+              className={`my-1 rounded-xl p-2.5 text-left border ${
+                pick === "care"
+                  ? "border-emerald-500/40 bg-emerald-950/80 text-emerald-200"
+                  : "border-amber-500/60 bg-amber-950/90 text-amber-200 animate-pulse"
+              }`}
+            >
+              <div className="flex items-center gap-1.5 text-xs font-bold">
+                {pick === "care" ? (
+                  <>
+                    <Shield className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                    <span className="truncate">Protected: {DATA_TRAIL_DESTINATIONS[room.id]?.care}</span>
+                  </>
+                ) : (
+                  <>
+                    <Radio className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                    <span className="truncate">➔ {DATA_TRAIL_DESTINATIONS[room.id]?.maxDestination}</span>
+                  </>
+                )}
+              </div>
+              <p className="mt-1 text-[10px] opacity-85 leading-tight">
+                {pick === "care"
+                  ? "Zero third-party telemetry"
+                  : DATA_TRAIL_DESTINATIONS[room.id]?.maxLabel}
+              </p>
+            </div>
+          )}
+
+          {pick ? (
+            <button
+              onClick={() => onPlace(room.id)}
+              className="self-start rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
+            >
+              Review / Change setting
+            </button>
+          ) : (
             <button
               onClick={() => onPlace(room.id)}
               className="self-start rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground"
@@ -338,6 +527,7 @@ function MobileRooms({
       {openRoom === room.id && (
         <DecisionCard
           room={room}
+          currentPick={choices[room.id]}
           onChoose={(p) => onDecide(room.id, p)}
           onDismiss={onDismiss}
           className="mt-4 w-full"

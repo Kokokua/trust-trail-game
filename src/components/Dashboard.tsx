@@ -1,10 +1,13 @@
 import { Link } from "@tanstack/react-router";
-import { Shield, AlertTriangle, Users } from "lucide-react";
+import { Shield, AlertTriangle, Users, Cpu } from "lucide-react";
 
 interface Props {
   trust: number;
   risk: number;
   users: number;
+  configuredCount?: number;
+  hasActiveSession?: boolean;
+  onGoToTitle?: () => void;
 }
 
 function Meter({
@@ -37,14 +40,72 @@ function Meter({
   );
 }
 
-export function Dashboard({ trust, risk, users }: Props) {
+export function Dashboard({
+  trust,
+  risk,
+  users,
+  configuredCount,
+  hasActiveSession,
+  onGoToTitle,
+}: Props) {
+  const handleTitleClick = () => {
+    if (!onGoToTitle) return;
+    if (hasActiveSession) {
+      if (window.confirm("Return to Title Screen? Current in-progress house settings will be reset.")) {
+        onGoToTitle();
+      }
+    } else {
+      onGoToTitle();
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-card/85 backdrop-blur">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
         <div className="mr-auto">
-          <p className="text-sm font-semibold">TrustTrail</p>
-          <p className="text-xs text-muted-foreground">Smart home startup, day one</p>
+          {onGoToTitle ? (
+            <button
+              onClick={handleTitleClick}
+              className="text-left group transition-opacity hover:opacity-85"
+              title="Return to Title Screen"
+            >
+              <p className="text-sm font-semibold group-hover:text-primary transition-colors">TrustTrail</p>
+              <p className="text-[11px] text-muted-foreground">Smart home startup · day one</p>
+            </button>
+          ) : (
+            <div>
+              <p className="text-sm font-semibold">TrustTrail</p>
+              <p className="text-[11px] text-muted-foreground">Smart home startup · day one</p>
+            </div>
+          )}
         </div>
+
+        {typeof configuredCount === "number" && (
+          <div className="flex items-center gap-2 rounded-2xl bg-secondary/80 px-3 py-1.5 border border-border/60">
+            <Cpu className="h-4 w-4 text-primary shrink-0" />
+            <div className="text-left">
+              <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                Setup Progress
+              </p>
+              <p className="text-xs font-bold text-foreground tabular-nums">
+                {configuredCount} / 5 <span className="font-normal text-muted-foreground">Devices</span>
+              </p>
+            </div>
+            <div className="flex gap-1 ml-1.5">
+              {[1, 2, 3, 4, 5].map((idx) => (
+                <span
+                  key={idx}
+                  className={`h-2 w-2 rounded-full transition-all duration-300 ${
+                    idx <= configuredCount
+                      ? "bg-primary scale-110 shadow-xs"
+                      : "bg-muted-foreground/30"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
         <Meter
           label="Trust"
           value={trust + 5}
@@ -59,12 +120,28 @@ export function Dashboard({ trust, risk, users }: Props) {
           </div>
           <p className="text-lg font-semibold tabular-nums">{users.toLocaleString()}</p>
         </div>
-        <Link
-          to="/data-trail"
-          className="rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary"
-        >
-          Data Trail
-        </Link>
+        <div className="flex items-center gap-2">
+          {onGoToTitle && (
+            <button
+              onClick={handleTitleClick}
+              className="rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              Title Menu
+            </button>
+          )}
+          <Link
+            to="/data-trail"
+            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary"
+          >
+            Data Trail
+          </Link>
+          <Link
+            to="/results"
+            className="rounded-full border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary"
+          >
+            Results
+          </Link>
+        </div>
       </div>
     </header>
   );
