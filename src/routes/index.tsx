@@ -8,6 +8,7 @@ import { DecisionCard } from "@/components/DecisionCard";
 import { EndingScreen } from "@/components/EndingScreen";
 import { DebriefScreen } from "@/components/DebriefScreen";
 import { ChoiceFeedback } from "@/components/ChoiceFeedback";
+import { WrongRoomPrompt } from "@/components/WrongRoomPrompt";
 import { UnderstandingCheck } from "@/components/UnderstandingCheck";
 import { StoryPrologue } from "@/components/StoryPrologue";
 import { TitleScreen } from "@/components/TitleScreen";
@@ -70,6 +71,7 @@ function Index() {
   const [openRoom, setOpenRoom] = useState<string | null>(null);
   const [slide, setSlide] = useState(0);
   const [feedback, setFeedback] = useState<{ roomId: string; pick: Pick } | null>(null);
+  const [wrongRoom, setWrongRoom] = useState<{ deviceId: string; roomId: string } | null>(null);
   const [showDataTrail, setShowDataTrail] = useState(false);
   const zoomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -204,31 +206,15 @@ function Index() {
   const remaining = ROOMS.filter((r) => !state.choices[r.id]);
 
   const place = (roomId: string, fromDevice?: string) => {
-    if (state.choices[roomId]) {
-      setOpenRoom(roomId);
+    const device = fromDevice ?? dragging;
+    if (!device) {
       return;
     }
-    const device = fromDevice ?? dragging;
-    // If no device is dragged/selected, clicking the room opens its decision setup directly!
-    if (!device) {
-      setOpenRoom(roomId);
+    if (state.choices[roomId]) {
       return;
     }
     if (device !== roomId) {
-      const dev = ROOMS.find((r) => r.id === device);
-      const target = ROOMS.find((r) => r.id === roomId);
-      const correct = ROOMS.find((r) => r.id === device);
-      recordMisplacement(
-        device,
-        roomId,
-        `Attempted placing ${dev?.deviceName || device} into ${target?.roomName || roomId}`
-      );
-      toast.warning(
-        `${dev?.deviceName || "Device"} belongs in ${correct?.roomName || "another room"}`,
-        {
-          description: "Test bay mismatch logged for user testing metrics.",
-        }
-      );
+      setWrongRoom({ deviceId: device, roomId });
       return;
     }
     setDragging(null);
@@ -248,6 +234,17 @@ function Index() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {wrongRoom && (
+        <WrongRoomPrompt
+          deviceName={ROOMS.find((r) => r.id === wrongRoom.deviceId)?.deviceName ?? "Device"}
+          roomName={ROOMS.find((r) => r.id === wrongRoom.roomId)?.roomName ?? "Room"}
+          onDone={(note) => {
+            recordMisplacement(wrongRoom.deviceId, wrongRoom.roomId, note);
+            setWrongRoom(null);
+            setDragging(null);
+          }}
+        />
+      )}
       {fbRoom && fb && feedback && (
         <ChoiceFeedback
           roomName={fbRoom.roomName}
@@ -324,8 +321,6 @@ function Index() {
                   return (
                     <div
                       key={room.id}
-                      role="button"
-                      tabIndex={0}
                       draggable={!done}
                       onDragStart={(e) => {
                         e.dataTransfer.setData("text/plain", room.id);
@@ -336,22 +331,14 @@ function Index() {
                         setDragging(null);
                         setHovered(null);
                       }}
-                      onClick={() => {
-                        setOpenRoom(room.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          setOpenRoom(room.id);
-                        }
-                      }}
                       title={
                         done
-                          ? "Configured · Click to review or change settings"
-                          : "Drag to room, or click to configure directly"
+                          ? "Configured"
+                          : "Drag into its room on the floorplan"
                       }
                       className={`flex w-full items-center gap-2 rounded-2xl border p-2.5 text-left text-xs font-medium transition-all select-none ${
                         done
-                          ? "border-border/60 bg-secondary/70 hover:border-primary/50 hover:bg-secondary cursor-pointer"
+                          ? "border-border/60 bg-secondary/70 cursor-default"
                           : dragging === room.id
                             ? "border-primary bg-primary/10 shadow-[var(--shadow-soft)] ring-2 ring-primary/40 cursor-grabbing"
                             : "cursor-grab active:cursor-grabbing border-border bg-card hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-sm"
@@ -371,8 +358,8 @@ function Index() {
               </div>
               <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
                 {remaining.length > 0
-                  ? `${remaining.length} left to set up. Drag a device or click any room directly.`
-                  : "Everything is placed · Tap any room to review settings."}
+                  ? `${remaining.length} left to set up. Drag each device from the shelf into its room.`
+                  : "All devices placed and configured."}
               </p>
             </aside>
 
@@ -385,7 +372,6 @@ function Index() {
               showDataTrail={showDataTrail}
               onRoomEnter={setHovered}
               onRoomDrop={(id, fromDevice) => place(id, fromDevice)}
-              onRoomClick={(id) => place(id)}
             >
               {openRoomDef && (
                 <DecisionCard

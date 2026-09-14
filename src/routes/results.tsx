@@ -5,17 +5,11 @@ import {
   Users,
   Award,
   TrendingUp,
-  RefreshCw,
-  Trash2,
-  Copy,
-  Check,
   CheckCircle2,
   Play,
 } from "lucide-react";
 import {
   getParticipantRecords,
-  clearParticipantRecords,
-  seedSampleParticipants,
   INITIAL_MOCK_PARTICIPANTS,
   exportRecordsToCSV,
   type ParticipantRecord,
@@ -55,33 +49,6 @@ function ResultsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleClear = () => {
-    if (window.confirm("Are you sure you want to clear all participant records?")) {
-      clearParticipantRecords();
-      setRecords([]);
-      setExpandedId(null);
-    }
-  };
-
-  const handleCopyReportTable = () => {
-    const markdown = records
-      .map((r) => {
-        const notes =
-          r.misplacements
-            ?.map(
-              (m) =>
-                `${m.deviceName} in ${m.roomName}: "${m.note || "skipped"}"`
-            )
-            .join("; ") || "-";
-        return `| ${r.id} | ${r.timestamp} | ${r.priorExp} | ${r.preKnowledgeScore}/5 | ${r.postKnowledgeScore}/5 | ${r.endingReached} | ${r.satisfaction}/10 | "${r.whyUnfair}" | ${notes} |`;
-      })
-      .join("\n");
-    const full = `| ID | Timestamp | Prior IoT Exp | Pre Score | Post Score | Ending Reached | Satisfaction | Why Consent != Understanding | Device Placement Notes |\n|:---|:---|:---:|:---:|:---:|:---|:---:|:---|:---|\n${markdown}`;
-    navigator.clipboard.writeText(full);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   // Calculations
@@ -138,35 +105,6 @@ function ResultsPage() {
             >
               <Download className="h-3.5 w-3.5" /> Export to CSV
             </button>
-            <button
-              onClick={handleCopyReportTable}
-              disabled={records.length === 0}
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-medium hover:bg-secondary transition-colors disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {copied ? <Check className="h-3.5 w-3.5 text-primary" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copied Table!" : "Copy Markdown Table"}
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm("Reload the 10 benchmark evaluation participant records?")) {
-                  const seeded = seedSampleParticipants();
-                  setRecords(seeded);
-                }
-              }}
-              title="Reload 10 benchmark participant records"
-              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-2 text-xs font-medium hover:bg-secondary transition-colors"
-            >
-              <RefreshCw className="h-3.5 w-3.5 text-primary" />
-              <span>Reset Sample 10</span>
-            </button>
-            <button
-              onClick={handleClear}
-              disabled={records.length === 0}
-              title="Clear all records"
-              className="inline-flex items-center gap-1 rounded-full border border-destructive/30 bg-destructive/5 px-2.5 py-2 text-xs text-destructive hover:bg-destructive/10 disabled:opacity-50 disabled:pointer-events-none"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
           </div>
         </div>
 
@@ -179,16 +117,6 @@ function ResultsPage() {
               No live test sessions have been recorded. Play through the game from the simulator, make your ethical device setup decisions, and submit the final post-game awareness check to collect real participant data.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <button
-                onClick={() => {
-                  const seeded = seedSampleParticipants();
-                  setRecords(seeded);
-                }}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-xs font-semibold text-foreground hover:bg-secondary shadow-[var(--shadow-soft)] transition-transform hover:-translate-y-0.5"
-              >
-                <RefreshCw className="h-3.5 w-3.5 text-primary" />
-                <span>Load 10 Simulated Participants</span>
-              </button>
               <Link
                 to="/"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-xs font-semibold text-primary-foreground shadow-[var(--shadow-card)] hover:-translate-y-0.5 transition-transform"

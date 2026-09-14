@@ -64,12 +64,30 @@ export function UnderstandingCheck({
   const answeredLikertCount = LIKERT_QUESTIONS.filter((q) => typeof likertAnswers[q.id] === "number").length;
   const answeredKnowledge = answeredKnowledgeCount === CHECK_ITEMS.length;
   const answeredLikert = answeredLikertCount === LIKERT_QUESTIONS.length;
-  const totalMandatory = after ? 11 : 10;
-  const answeredMandatory = answeredKnowledgeCount + answeredLikertCount + (after ? (whyUnfair.trim().length > 0 || revealed ? 1 : 0) : 0);
+  const answeredPriorExp = priorExp === "Yes" || priorExp === "No";
+  const answeredConcepts = selectedConcepts.length > 0;
+  const answeredWhyUnfair = whyUnfair.trim().length > 0;
+  const answeredImprovement = improvement.trim().length > 0;
+
+  const totalMandatory = after ? 14 : 10;
+  const answeredMandatory =
+    answeredKnowledgeCount +
+    answeredLikertCount +
+    (after
+      ? (answeredPriorExp ? 1 : 0) +
+        (answeredConcepts ? 1 : 0) +
+        (answeredWhyUnfair || revealed ? 1 : 0) +
+        (answeredImprovement || revealed ? 1 : 0)
+      : 0);
   const progressPct = Math.min(100, Math.round((answeredMandatory / totalMandatory) * 100));
 
   const answeredAll = after
-    ? answeredKnowledge && answeredLikert && (whyUnfair.trim().length > 0 || revealed)
+    ? answeredKnowledge &&
+      answeredLikert &&
+      answeredPriorExp &&
+      answeredConcepts &&
+      (answeredWhyUnfair || revealed) &&
+      (answeredImprovement || revealed)
     : answeredKnowledge && answeredLikert;
 
   const score = scoreCheck(answers);
@@ -336,10 +354,25 @@ export function UnderstandingCheck({
 
             <div className="mt-5 space-y-5">
               {/* Prior Experience */}
-              <section className="rounded-3xl border border-border bg-card p-5 shadow-[var(--shadow-soft)]">
-                <p className="text-sm font-medium">
-                  Have you ever used or owned a smart-home device?
-                </p>
+              <section
+                className={`rounded-3xl border bg-card p-5 shadow-[var(--shadow-soft)] transition-all ${
+                  answeredPriorExp ? "border-border" : "border-amber-500/40 ring-1 ring-amber-500/10"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    Have you ever used or owned a smart-home device?
+                  </p>
+                  {answeredPriorExp ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                      ✓ Answered
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                      Required
+                    </span>
+                  )}
+                </div>
                 <div className="mt-3 flex gap-3">
                   {(["Yes", "No"] as const).map((opt) => (
                     <button
@@ -359,10 +392,25 @@ export function UnderstandingCheck({
               </section>
 
               {/* Ethical Concepts Multi-select */}
-              <section className="rounded-3xl border border-border bg-card p-5 shadow-[var(--shadow-soft)]">
-                <p className="text-sm font-medium">
-                  Which ethical concepts did this simulator make you think about?
-                </p>
+              <section
+                className={`rounded-3xl border bg-card p-5 shadow-[var(--shadow-soft)] transition-all ${
+                  answeredConcepts ? "border-border" : "border-amber-500/40 ring-1 ring-amber-500/10"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    Which ethical concepts did this simulator make you think about?
+                  </p>
+                  {answeredConcepts ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                      ✓ {selectedConcepts.length} Selected
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                      Pick at least 1
+                    </span>
+                  )}
+                </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {ETHICAL_CONCEPTS.map((concept) => {
                     const selected = selectedConcepts.includes(concept);
@@ -439,17 +487,32 @@ export function UnderstandingCheck({
               </section>
 
               {/* Suggestions */}
-              <section className="rounded-3xl border border-border bg-card p-5 shadow-[var(--shadow-soft)]">
-                <label htmlFor="improvement" className="text-sm font-medium">
-                  What part of the experience do you think we should improve? (Optional)
-                </label>
+              <section
+                className={`rounded-3xl border bg-card p-5 shadow-[var(--shadow-soft)] transition-all ${
+                  answeredImprovement ? "border-border" : "border-amber-500/40 ring-1 ring-amber-500/10"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <label htmlFor="improvement" className="text-sm font-medium">
+                    What part of the experience do you think we should improve?
+                  </label>
+                  {answeredImprovement ? (
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                      ✓ Answered
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                      Required
+                    </span>
+                  )}
+                </div>
                 <textarea
                   id="improvement"
                   disabled={revealed}
                   value={improvement}
                   onChange={(e) => onImprovement && onImprovement(e.target.value)}
                   rows={2}
-                  placeholder="Suggestions or bug reports..."
+                  placeholder="Suggestions, feedback, or reflections on the simulator..."
                   className="mt-2.5 w-full resize-y rounded-2xl border border-border bg-background p-3 text-sm outline-none focus:border-primary"
                 />
               </section>
@@ -508,7 +571,7 @@ export function UnderstandingCheck({
               </button>
               {!answeredAll && (
                 <span className="text-xs text-muted-foreground italic">
-                  * Please answer the 5 knowledge calls, 5 survey questions, and brief reflection above to submit.
+                  * Please complete all parts above (5 knowledge calls, 5 survey questions, ethical concepts, and reflection/feedback) to submit.
                 </span>
               )}
             </div>

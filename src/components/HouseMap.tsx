@@ -41,7 +41,6 @@ interface Props {
   showDataTrail?: boolean;
   onRoomEnter: (id: string | null) => void;
   onRoomDrop: (id: string, fromDevice?: string) => void;
-  onRoomClick: (id: string) => void;
   children?: React.ReactNode;
 }
 
@@ -61,7 +60,6 @@ export function HouseMap({
   showDataTrail = false,
   onRoomEnter,
   onRoomDrop,
-  onRoomClick,
   children,
 }: Props) {
   const careCount = Object.values(choices).filter((p) => p === "care").length;
@@ -115,8 +113,7 @@ export function HouseMap({
                 const droppedDevice = e.dataTransfer.getData("text/plain") || undefined;
                 onRoomDrop(room.id, droppedDevice);
               }}
-              onClick={() => onRoomClick(room.id)}
-              className="absolute cursor-pointer rounded-2xl border-2 transition-all duration-500"
+              className="absolute rounded-2xl border-2 transition-all duration-500"
               style={{
                 left: `${room.rect.x}%`,
                 top: `${room.rect.y}%`,
