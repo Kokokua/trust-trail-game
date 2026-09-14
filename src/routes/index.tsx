@@ -209,8 +209,9 @@ function Index() {
       return;
     }
     const device = fromDevice ?? dragging;
+    // If no device is dragged/selected, clicking the room opens its decision setup directly!
     if (!device) {
-      toast("Pick up a device from the shelf first.");
+      setOpenRoom(roomId);
       return;
     }
     if (device !== roomId) {
@@ -326,28 +327,39 @@ function Index() {
                   const done = !!state.choices[room.id];
                   const Icon = room.icon;
                   return (
-                    <button
+                    <div
                       key={room.id}
+                      role="button"
+                      tabIndex={0}
                       draggable={!done}
-                      onDragStart={() => setDragging(room.id)}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/plain", room.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        setDragging(room.id);
+                      }}
                       onDragEnd={() => {
                         setDragging(null);
                         setHovered(null);
                       }}
                       onClick={() => {
-                        if (done) {
+                        setOpenRoom(room.id);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
                           setOpenRoom(room.id);
-                        } else {
-                          setDragging(room.id);
                         }
                       }}
-                      title={done ? "Configured · Click to review or change settings" : undefined}
-                      className={`flex w-full items-center gap-2 rounded-2xl border p-2.5 text-left text-xs font-medium transition-all ${
+                      title={
+                        done
+                          ? "Configured · Click to review or change settings"
+                          : "Drag to room, or click to configure directly"
+                      }
+                      className={`flex w-full items-center gap-2 rounded-2xl border p-2.5 text-left text-xs font-medium transition-all select-none ${
                         done
                           ? "border-border/60 bg-secondary/70 hover:border-primary/50 hover:bg-secondary cursor-pointer"
                           : dragging === room.id
-                            ? "border-primary bg-primary/10 shadow-[var(--shadow-soft)]"
-                            : "cursor-grab border-border bg-card hover:-translate-y-0.5 hover:border-primary/60"
+                            ? "border-primary bg-primary/10 shadow-[var(--shadow-soft)] ring-2 ring-primary/40 cursor-grabbing"
+                            : "cursor-grab active:cursor-grabbing border-border bg-card hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-sm"
                       }`}
                     >
                       <Icon className="h-4 w-4 shrink-0" />
@@ -358,13 +370,13 @@ function Index() {
                         ) : (
                           <Eye className="ml-auto h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                         ))}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
               <p className="mt-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
                 {remaining.length > 0
-                  ? `${remaining.length} left to set up. Drag, or tap a device then tap its room.`
+                  ? `${remaining.length} left to set up. Drag a device or click any room directly.`
                   : "Everything is placed · Tap any room to review settings."}
               </p>
             </aside>
@@ -377,7 +389,7 @@ function Index() {
               zoomOut={state.phase === "zoom"}
               showDataTrail={showDataTrail}
               onRoomEnter={setHovered}
-              onRoomDrop={(id) => place(id)}
+              onRoomDrop={(id, fromDevice) => place(id, fromDevice)}
               onRoomClick={(id) => place(id)}
             >
               {openRoomDef && (

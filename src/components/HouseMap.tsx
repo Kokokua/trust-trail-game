@@ -40,7 +40,7 @@ interface Props {
   zoomOut?: boolean;
   showDataTrail?: boolean;
   onRoomEnter: (id: string | null) => void;
-  onRoomDrop: (id: string) => void;
+  onRoomDrop: (id: string, fromDevice?: string) => void;
   onRoomClick: (id: string) => void;
   children?: React.ReactNode;
 }
@@ -105,13 +105,15 @@ export function HouseMap({
               key={room.id}
               onDragOver={(e) => {
                 e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
                 if (!pick) onRoomEnter(room.id);
               }}
               onDragLeave={() => onRoomEnter(null)}
               onDrop={(e) => {
                 e.preventDefault();
                 onRoomEnter(null);
-                onRoomDrop(room.id);
+                const droppedDevice = e.dataTransfer.getData("text/plain") || undefined;
+                onRoomDrop(room.id, droppedDevice);
               }}
               onClick={() => onRoomClick(room.id)}
               className="absolute cursor-pointer rounded-2xl border-2 transition-all duration-500"
