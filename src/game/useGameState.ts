@@ -106,14 +106,19 @@ export function useGameState() {
     (reflection: string) => setState((s) => ({ ...s, reflection })),
     [],
   );
+  /** replay the house; the before-play baseline is kept so the comparison stays meaningful */
   const reset = useCallback(() => {
-    try {
-      localStorage.removeItem(KEY);
-    } catch {
-      /* ignore */
-    }
-    setState(initial);
+    setState((s) => ({ ...initial, preAnswers: s.preAnswers, phase: "play" }));
   }, []);
 
-  return { state, hydrated, choose, recordMisplacement, setPhase, setReflection, reset };
+  return {
+    state,
+    hydrated,
+    choose,
+    recordMisplacement,
+    setPhase,
+    answerCheck,
+    setReflection,
+    reset,
+  };
 }
