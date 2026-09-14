@@ -17,10 +17,13 @@ export interface GameState {
   /** device ids that already triggered the curious wrong-room prompt */
   askedDevices: string[];
   misplacements: MisplacementNote[];
-  phase: "play" | "zoom" | "ending" | "debrief";
+  /** understanding check answers, before and after playing */
+  preAnswers: Record<string, string>;
+  postAnswers: Record<string, string>;
+  phase: "pre" | "play" | "zoom" | "ending" | "debrief" | "post";
 }
 
-const KEY = "trusttrail.v2";
+const KEY = "trusttrail.v3";
 
 const initial: GameState = {
   choices: {},
@@ -30,7 +33,9 @@ const initial: GameState = {
   reflection: "",
   askedDevices: [],
   misplacements: [],
-  phase: "play",
+  preAnswers: {},
+  postAnswers: {},
+  phase: "pre",
 };
 
 export function useGameState() {
