@@ -127,12 +127,26 @@ function Index() {
     choose(roomId, pick);
     setOpenRoom(null);
     toast.success(`${room.roomName} setup saved`, { description: room[pick].title });
+    setFeedback({ roomId, pick });
   };
 
   const openRoomDef = openRoom ? ROOMS.find((r) => r.id === openRoom)! : null;
+  const fbRoom = feedback ? ROOMS.find((r) => r.id === feedback.roomId)! : null;
+  const fb = feedback ? feedbackFor(feedback.roomId, feedback.pick) : null;
 
   return (
     <div className="min-h-screen bg-background">
+      {fbRoom && fb && feedback && (
+        <ChoiceFeedback
+          roomName={fbRoom.roomName}
+          choiceTitle={fbRoom[feedback.pick].title}
+          principle={fb.principle}
+          body={fb.body}
+          realWorld={fb.realWorld}
+          remaining={ROOMS.filter((r) => !state.choices[r.id]).length}
+          onClose={() => setFeedback(null)}
+        />
+      )}
       <Dashboard trust={state.trust} risk={state.risk} users={state.users} />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
