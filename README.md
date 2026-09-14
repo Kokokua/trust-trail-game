@@ -10,7 +10,6 @@ Decision simulator สอนเรื่อง Informed Consent และ Privac
 
 - **เข้าเล่นเกม (Simulator):** [https://trust-trail-game.vercel.app/](https://trust-trail-game.vercel.app/)
 - **หน้าดูผลการประเมิน (Results Dashboard):** [https://trust-trail-game.vercel.app/results](https://trust-trail-game.vercel.app/results)
-- **ลิงก์สำรอง (Lovable):** [https://trust-trail-game.lovable.app/](https://trust-trail-game.lovable.app/)
 
 ---
 
