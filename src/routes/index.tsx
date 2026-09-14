@@ -258,11 +258,6 @@ function Index() {
           realWorld={fb.realWorld}
           remaining={ROOMS.filter((r) => !state.choices[r.id]).length}
           onClose={() => setFeedback(null)}
-          onReconsider={() => {
-            unchoose(feedback.roomId);
-            setOpenRoom(feedback.roomId);
-            setFeedback(null);
-          }}
         />
       )}
       <Dashboard

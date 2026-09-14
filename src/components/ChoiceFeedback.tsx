@@ -1,4 +1,4 @@
-import { Scale, CheckCircle2, AlertTriangle, Undo2, Shield, Users } from "lucide-react";
+import { Scale, CheckCircle2, AlertTriangle, Shield, Users } from "lucide-react";
 import type { Pick } from "@/game/content";
 
 interface Props {
@@ -10,7 +10,6 @@ interface Props {
   realWorld: string;
   remaining: number;
   onClose: () => void;
-  onReconsider?: () => void;
 }
 
 export function ChoiceFeedback({
@@ -22,7 +21,6 @@ export function ChoiceFeedback({
   realWorld,
   remaining,
   onClose,
-  onReconsider,
 }: Props) {
   const isEthical = pick === "care";
 
@@ -95,22 +93,13 @@ export function ChoiceFeedback({
           <p className="mt-1 text-sm leading-relaxed">{realWorld}</p>
         </div>
 
-        <div className="mt-5 space-y-2">
+        <div className="mt-5">
           <button
             onClick={onClose}
             className="w-full rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-transform hover:-translate-y-0.5 shadow-sm"
           >
             {remaining > 0 ? `Back to the house · ${remaining} left` : "See what you shipped"}
           </button>
-          {onReconsider && (
-            <button
-              onClick={onReconsider}
-              className="inline-flex w-full items-center justify-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-            >
-              <Undo2 className="h-3.5 w-3.5" />
-              <span>↩ Change Decision / Reconsider Choice</span>
-            </button>
-          )}
         </div>
       </div>
     </div>
