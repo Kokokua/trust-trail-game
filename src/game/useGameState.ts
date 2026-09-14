@@ -97,6 +97,11 @@ export function useGameState() {
     (phase: GameState["phase"]) => setState((s) => ({ ...s, phase })),
     [],
   );
+  const answerCheck = useCallback(
+    (which: "preAnswers" | "postAnswers", itemId: string, optionId: string) =>
+      setState((s) => ({ ...s, [which]: { ...s[which], [itemId]: optionId } })),
+    [],
+  );
   const setReflection = useCallback(
     (reflection: string) => setState((s) => ({ ...s, reflection })),
     [],
