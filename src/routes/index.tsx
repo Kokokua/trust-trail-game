@@ -7,7 +7,10 @@ import { HouseMap, roomFill } from "@/components/HouseMap";
 import { DecisionCard } from "@/components/DecisionCard";
 import { EndingScreen } from "@/components/EndingScreen";
 import { DebriefScreen } from "@/components/DebriefScreen";
+import { ChoiceFeedback } from "@/components/ChoiceFeedback";
+import { UnderstandingCheck } from "@/components/UnderstandingCheck";
 import { ROOMS, resolveEnding, type Pick } from "@/game/content";
+import { feedbackFor } from "@/game/learning";
 import { useGameState } from "@/game/useGameState";
 
 export const Route = createFileRoute("/")({
@@ -43,26 +46,37 @@ function useNarrow() {
 }
 
 function Index() {
-  const { state, hydrated, choose, setPhase, setReflection, reset } = useGameState();
+  const { state, hydrated, choose, setPhase, answerCheck, setReflection, reset } = useGameState();
   const narrow = useNarrow();
   const [dragging, setDragging] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [openRoom, setOpenRoom] = useState<string | null>(null);
   const [slide, setSlide] = useState(0);
+  const [feedback, setFeedback] = useState<{ roomId: string; pick: Pick } | null>(null);
   const zoomTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (state.phase !== "zoom") return;
+    if (state.phase !== "zoom" || feedback) return;
     zoomTimer.current = setTimeout(() => setPhase("ending"), 2400);
     return () => {
       if (zoomTimer.current) clearTimeout(zoomTimer.current);
     };
-  }, [state.phase, setPhase]);
+  }, [state.phase, feedback, setPhase]);
 
   if (!hydrated) return <div className="min-h-screen bg-background" />;
 
   const { ending, decidingRoom } = resolveEnding(state.choices);
 
+  if (state.phase === "pre") {
+    return (
+      <UnderstandingCheck
+        mode="before"
+        answers={state.preAnswers}
+        onAnswer={(item, opt) => answerCheck("preAnswers", item, opt)}
+        onDone={() => setPhase("play")}
+      />
+    );
+  }
   if (state.phase === "ending") {
     return <EndingScreen ending={ending} onContinue={() => setPhase("debrief")} />;
   }
@@ -74,6 +88,18 @@ function Index() {
         choices={state.choices}
         reflection={state.reflection}
         onReflection={setReflection}
+        onRestart={() => setPhase("post")}
+      />
+    );
+  }
+  if (state.phase === "post") {
+    return (
+      <UnderstandingCheck
+        mode="after"
+        answers={state.postAnswers}
+        baseline={state.preAnswers}
+        onAnswer={(item, opt) => answerCheck("postAnswers", item, opt)}
+        onDone={() => setPhase("play")}
         onRestart={reset}
       />
     );
@@ -101,12 +127,26 @@ function Index() {
     choose(roomId, pick);
     setOpenRoom(null);
     toast.success(`${room.roomName} setup saved`, { description: room[pick].title });
+    setFeedback({ roomId, pick });
   };
 
   const openRoomDef = openRoom ? ROOMS.find((r) => r.id === openRoom)! : null;
+  const fbRoom = feedback ? ROOMS.find((r) => r.id === feedback.roomId)! : null;
+  const fb = feedback ? feedbackFor(feedback.roomId, feedback.pick) : null;
 
   return (
     <div className="min-h-screen bg-background">
+      {fbRoom && fb && feedback && (
+        <ChoiceFeedback
+          roomName={fbRoom.roomName}
+          choiceTitle={fbRoom[feedback.pick].title}
+          principle={fb.principle}
+          body={fb.body}
+          realWorld={fb.realWorld}
+          remaining={ROOMS.filter((r) => !state.choices[r.id]).length}
+          onClose={() => setFeedback(null)}
+        />
+      )}
       <Dashboard trust={state.trust} risk={state.risk} users={state.users} />
 
       <main className="mx-auto max-w-5xl px-4 py-6">

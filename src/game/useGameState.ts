@@ -17,10 +17,13 @@ export interface GameState {
   /** device ids that already triggered the curious wrong-room prompt */
   askedDevices: string[];
   misplacements: MisplacementNote[];
-  phase: "play" | "zoom" | "ending" | "debrief";
+  /** understanding check answers, before and after playing */
+  preAnswers: Record<string, string>;
+  postAnswers: Record<string, string>;
+  phase: "pre" | "play" | "zoom" | "ending" | "debrief" | "post";
 }
 
-const KEY = "trusttrail.v2";
+const KEY = "trusttrail.v3";
 
 const initial: GameState = {
   choices: {},
@@ -30,7 +33,9 @@ const initial: GameState = {
   reflection: "",
   askedDevices: [],
   misplacements: [],
-  phase: "play",
+  preAnswers: {},
+  postAnswers: {},
+  phase: "pre",
 };
 
 export function useGameState() {
@@ -92,18 +97,28 @@ export function useGameState() {
     (phase: GameState["phase"]) => setState((s) => ({ ...s, phase })),
     [],
   );
+  const answerCheck = useCallback(
+    (which: "preAnswers" | "postAnswers", itemId: string, optionId: string) =>
+      setState((s) => ({ ...s, [which]: { ...s[which], [itemId]: optionId } })),
+    [],
+  );
   const setReflection = useCallback(
     (reflection: string) => setState((s) => ({ ...s, reflection })),
     [],
   );
+  /** replay the house; the before-play baseline is kept so the comparison stays meaningful */
   const reset = useCallback(() => {
-    try {
-      localStorage.removeItem(KEY);
-    } catch {
-      /* ignore */
-    }
-    setState(initial);
+    setState((s) => ({ ...initial, preAnswers: s.preAnswers, phase: "play" }));
   }, []);
 
-  return { state, hydrated, choose, recordMisplacement, setPhase, setReflection, reset };
+  return {
+    state,
+    hydrated,
+    choose,
+    recordMisplacement,
+    setPhase,
+    answerCheck,
+    setReflection,
+    reset,
+  };
 }

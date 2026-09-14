@@ -47,6 +47,16 @@ export function DebriefScreen({
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">{room.roomName}</p>
                   <p className="text-sm">{pick ? room[pick].title : "—"}</p>
+                  {pick && ROOM_FEEDBACK[room.id] && (
+                    <>
+                      <p className="mt-1.5 text-xs font-medium opacity-75">
+                        {ROOM_FEEDBACK[room.id]!.principle}
+                      </p>
+                      <p className="mt-1 text-xs leading-relaxed opacity-80">
+                        {ROOM_FEEDBACK[room.id]![pick]}
+                      </p>
+                    </>
+                  )}
                   {deciding && (
                     <p className="mt-1 text-xs font-medium opacity-80">
                       This is the decision that shaped your ending.
